@@ -1,0 +1,68 @@
+import mongoose, { Schema } from "mongoose";
+import jwt  from "jsonwebtoken";
+import bcrypt from 'bcrypt'
+
+const userSchema = new Schema(
+  {
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    avatar: {
+      type: String, //cloudnary url for images
+      required: true,
+    },
+    coverImage: {
+      type: String,
+    },
+    watchHistory: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Video",
+      },
+    ],
+    password: {
+      type: String,
+      required: [true, "password is required"],
+    },
+    refreshToken: {
+      type: String,
+    },
+  },
+  { timestamps: true }
+);
+
+//to encrypt the password by bcrypt......
+userSchema.pre("save",async function(next){
+   
+    //if password field not modified then retun to next()
+    if(!this.isModified("password")) return next();
+   
+    //if password field is modified then encrypt the password by hash()
+    this.password=bcrypt.hash(this.password,10);
+    next();
+});
+
+// To check the passwrod by bcrypt (verify password)
+userSchema.methods.isPasswordCorrect=async function(password){
+    return await bcrypt.compare(password,this.password)
+}
+
+export const User = mongoose.model("User", userSchema);
