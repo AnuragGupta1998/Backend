@@ -45,4 +45,4 @@ const videoSchema=new Schema(
 //for writting aggregation pipeline in mongoDB..
 videoSchema.plugin(mongooseAggregatePaginate)
 
-export const Video=mongoose.model("Video",videoSchema)
+export const Video = mongoose.model("Video",videoSchema)
