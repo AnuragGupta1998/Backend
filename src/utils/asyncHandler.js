@@ -1,12 +1,12 @@
 //Promise resolve wrapper
 const asyncHandler = (requestHandler) => {
   return (req, res, next) => {
-    Promise.resolve(requestHandler(req, res, next))  //we simply returning function inside wrapper
-    .catch((error) => next(error));  
+    Promise.resolve(requestHandler(req, res, next)) //we simply returning function inside wrapper
+      .catch((error) => next(error));
   };
 };
 
-export {asyncHandler}
+export { asyncHandler };
 
 //try catch...........................
 

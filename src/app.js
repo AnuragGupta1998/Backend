@@ -16,5 +16,12 @@ app.use(express.static("public")); //to store images and pdf and file on server 
 app.use(cookieParser()); // access the user browser cookies and set the cookies mean we can perform CRUD operation on cookies
 
 
+//routes import
+import userRouter from "./routes/user.routes.js";
+
+//declaration of routes
+app.use('/api/v1/users',userRouter) //it send control to user.routes.js http://localhost:8000/api/v1/users
+
+
 
 export { app };
