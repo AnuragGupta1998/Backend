@@ -5,7 +5,7 @@ import { app } from "./app.js";
 
 //congiguration of dotenv
 dotenv.config({
-  path: "./env",
+  path: "./.env",
 });
 
 connectDB()

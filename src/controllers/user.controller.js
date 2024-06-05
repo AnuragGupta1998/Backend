@@ -17,6 +17,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // return res
 
   //user details
+  console.log("req.files=",req.files)
   const { username, email, password, fullName } = req.body;
 
   // validation - not empty it check all field should not to be empty if empty then return true
@@ -28,16 +29,21 @@ const registerUser = asyncHandler(async (req, res) => {
   // }
 
   //check user is existed or not...
-  const existedUser=User.findOne({
+  const existedUser = await User.findOne({
     $or:[{ username },{ email }]
   });
 
   if(existedUser) throw new ApiError(400,"User with email or username already exists  ");
 
   //multer provide us access to files ( upload middleware we can access file) 
+  // console.log("req.files",req.files)
   const avatarLocalPath = req.files?.avatar[0]?.path;
 
-  const coverImageLocalPath=req.files?.coverImage[0]?.path;
+  // const coverImageLocalPath=req.files?.coverImage[0]?.path;
+  let coverImageLocalPath;
+  if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
+    coverImageLocalPath = req.files.coverImage[0].path;
+  }
 
   // check for avatartLocalPath
   if(!avatarLocalPath) throw new ApiError(400,"avatar must required");
@@ -45,6 +51,9 @@ const registerUser = asyncHandler(async (req, res) => {
   //upload avatar and coverImage on cloudinary
   const avatar = await uploadOnCloudinary(avatarLocalPath);
   const coverImage = await uploadOnCloudinary(coverImageLocalPath); 
+
+  // console.log("avatar",avatar)
+  // console.log("coverImage",coverImage)
 
   if(!avatar) throw new ApiError(400,"avatar must required"); //check avatar uploaded on cloudinary or not
 
@@ -58,6 +67,7 @@ const registerUser = asyncHandler(async (req, res) => {
     coverImage: coverImage?.url || ""
   });
 
+  //do not send password and refreshToken to user
   const userCreated = await User.findById(user._id).select("-password -refreshToken");
 
   if(!userCreated) throw new ApiError(500,"someting went wrong while registring user");
