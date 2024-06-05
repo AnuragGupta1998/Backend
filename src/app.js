@@ -19,7 +19,7 @@ app.use(cookieParser()); // access the user browser cookies and set the cookies 
 //routes import
 import userRouter from "./routes/user.routes.js";
 
-//declaration of routes
+//declaration of routes as middleware
 app.use('/api/v1/users',userRouter) //it send control to user.routes.js http://localhost:8000/api/v1/users
 
 
