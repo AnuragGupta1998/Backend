@@ -65,6 +65,7 @@ userSchema.methods.isPasswordCorrect = async function (password) {
 }
 
 // sign method  genetating AccessToken..
+//expire in short lived duration
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {   //payload/data ...
@@ -81,6 +82,7 @@ userSchema.methods.generateAccessToken = function () {
 }
 
 // sign method generating Refresh Token..
+//expire in long lived duration
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign( 
     {
