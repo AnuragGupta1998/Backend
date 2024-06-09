@@ -6,7 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
 
-//generate accessToken and refreshToken...
+//generate accessToken and refreshToken ........................................................................
 const generateAccessAndRefreshToken = async(userId) => {
   
   try {
@@ -27,7 +27,7 @@ const generateAccessAndRefreshToken = async(userId) => {
   }
 }
 
-//signup...........
+//signup .............................................................................................
 const registerUser = asyncHandler(async (req, res) => {
   // get user details from frontend
   // validation - not empty
@@ -101,7 +101,7 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, userCreated, "User registered Successefully"));
 });
 
-//login............
+//login ...................................................................................................
 const loginUser = asyncHandler(async (req, res) => {
   // Todo list
   // required data from req.body
@@ -164,7 +164,7 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 
-//logoutUser.............................................
+//logoutUser .................................................................................................
 const logoutUser = asyncHandler(async (req,res) =>{
 
   //updating user
@@ -193,8 +193,8 @@ const logoutUser = asyncHandler(async (req,res) =>{
   
 });
 
-//regenarating AccessToken with the help of refresshToken
-const regenaratingAccessToken=asyncHandler(async(req,res)=>{
+//regenarating AccessToken with the help of refresshToken from req.cookies ....................................................
+const regenaratingAccessToken = asyncHandler(async(req,res)=>{
 
   const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken ;
 
@@ -235,9 +235,37 @@ const regenaratingAccessToken=asyncHandler(async(req,res)=>{
 
 });
 
+//change current Password ..............................................................................
+const changeCurrentPassword = asyncHandler(async (req,res)=>{
+
+  const{oldPassword,newPassword}=req.body;
+
+  //find user by authmiddleware
+  const user = await User.findById(req.user._id);
+
+  //check old password with DB stored password of user
+  const isOldPasswordIsCorrect = await user.isPasswordCorrect(oldPassword);
+
+  if(!isOldPasswordIsCorrect) throw new ApiError(400,"invalid old password");
+
+  //change old password with newPassword
+  user.password=newPassword;
+  user.save({validateBeforeSave:false});
+
+  return res.status(200).json(new ApiResponse(200,{},"Password change Successfully"))
+
+})
+
+//getCurrent User.......................................................................................
+const getCurrentUser=asyncHandler(async (req,res)=>{
+  return res.status(200).json(new ApiResponse(200,req.user,"User fetched Successfully"));
+})
+
 export { 
   registerUser, 
   loginUser,
   logoutUser,
-  regenaratingAccessToken
+  regenaratingAccessToken,
+  changeCurrentPassword,
+  getCurrentUser 
 };
