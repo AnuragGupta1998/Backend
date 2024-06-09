@@ -27,6 +27,7 @@ const generateAccessAndRefreshToken = async(userId) => {
   }
 }
 
+//signup...........
 const registerUser = asyncHandler(async (req, res) => {
   // get user details from frontend
   // validation - not empty
@@ -100,6 +101,7 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, userCreated, "User registered Successefully"));
 });
 
+//login............
 const loginUser = asyncHandler(async (req, res) => {
   // Todo list
   // required data from req.body
