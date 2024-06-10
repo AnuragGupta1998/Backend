@@ -5,6 +5,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import fs from "fs"
+import { deleteImageFromCloudinary } from "../utils/deleteFromCloudinary.js";
 
 
 //generate accessToken and refreshToken ........................................................................
@@ -45,7 +46,8 @@ const registerUser = asyncHandler(async (req, res) => {
   // console.log("req.files=", req.files);
   const { username, email, password, fullName } = req.body;
 
-  // validation - not empty it check all field should not to be empty if empty then return true if it true then send an error msg
+  // validation - not empty it check all field should not to be empty 
+  //if empty then return true if it true then send an error msg
   if ([username, email, password, fullName].some((field) => field?.trim() === "")){
     throw new ApiError(400, "All fields must be required to proceed");
   }
@@ -299,14 +301,21 @@ const updateAccountDetails = asyncHandler(async (req,res) =>{
 
 })
 
-//update User Avatar image based files.................................................................................
+//update User Avatar image based files.....................................................................................
 const updateUserAvatar=asyncHandler(async (req,res) =>{
 
   //get avatar file through multer middleware
-  const avatarLocalPath=req.file?.path;
+  const avatarLocalPath = req.file?.path;
   if(!avatarLocalPath) throw new ApiError(400,"avatar file is missing");
 
   const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+  //Todo Assignment delete old image of user image from cloudinary 
+  //delete old image from cloudinary after new image uploaded on cloudinary
+  const oldUser = await User.findById(user._id)
+  const oldImagePath=oldUser.avatar;
+  deleteImageFromCloudinary(oldImagePath)
+
 
   if(!avatar.url) throw new ApiError(400,"Error while uploading on avatar");
 
@@ -329,7 +338,7 @@ const updateUserAvatar=asyncHandler(async (req,res) =>{
     )
 });
 
-//update user cover image .................................................................................... 
+//update user cover image ..................................................................................................
 const updateUserCoverImage=asyncHandler(async (req,res) =>{
 
   //get coverImage file through multer middleware
@@ -358,6 +367,51 @@ const updateUserCoverImage=asyncHandler(async (req,res) =>{
         new ApiResponse(200, user, "coverImage image updated successfully")
     )
 });
+
+//MongoDb aggregation pipeline............................................................................................
+const getUserChannelProfile=asyncHandler(async (req,res)=>{
+
+  //get data from url by params
+  const{username} = req.params
+
+  if(!username?.trim()) throw new ApiError(400,"username is missing ");
+
+  //find user by aggregation
+  const channel = await User.aggregate([
+    { 
+      //(match operator is used to find user) by username in User DB collection
+      $match:{
+        username: username?.toLowerCase()  
+      }
+    },
+    { //lookup opretor is used to join the document (model)
+      $lookup:{
+        from:"subscriptions",          // join subscription model with user model
+        localField:"_id",              // inside User
+        foreignField:"channel",        // inside Subscription
+        as:"subscribers"               // subscriber of channel(user)
+      }
+    },
+    { //lookup opretor is used to join the document (model)
+      $lookup:{
+        from:"subscriptions",          // join subscription model with user model
+        localField:"_id",              // inside User
+        foreignField:"subscriber",     // inside Subscription
+        as:"subscriberedTo"            // to whom user subscribed 
+      }
+      
+    },
+    { //add field in User model
+      $addFields:{
+        
+
+      }
+    }
+  ])
+
+
+
+})
 
 
 
