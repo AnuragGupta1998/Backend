@@ -376,15 +376,17 @@ const getUserChannelProfile=asyncHandler(async (req,res)=>{
 
   if(!username?.trim()) throw new ApiError(400,"username is missing ");
 
-  //find user by aggregation
+  //find user by aggregation pipeline
   const channel = await User.aggregate([
-    { 
-      //(match operator is used to find user) by username in User DB collection
+
+    { //(match operator is used to find user) by username in User DB collection
       $match:{
         username: username?.toLowerCase()  
       }
     },
-    { //lookup opretor is used to join the document (model)
+
+    { //lookup opretor is used to left join the document (model)
+      //subscribers of channel
       $lookup:{
         from:"subscriptions",          // join subscription model with user model
         localField:"_id",              // inside User
@@ -392,24 +394,70 @@ const getUserChannelProfile=asyncHandler(async (req,res)=>{
         as:"subscribers"               // subscriber of channel(user)
       }
     },
-    { //lookup opretor is used to join the document (model)
+
+    { //lookup opretor is used to left join the document (model)
+      //to whom channel subscribed
       $lookup:{
         from:"subscriptions",          // join subscription model with user model
         localField:"_id",              // inside User
         foreignField:"subscriber",     // inside Subscription
-        as:"subscriberedTo"            // to whom user subscribed 
+        as:"subscribedTo"            // to whom user subscribed 
       }
       
     },
-    { //add field in User model
+
+    { //addField operator used to add field in User model
       $addFields:{
-        
+        subscribersCount:{       //name of field
+          $size:"$subscribers"    //size operator calculate the subscribers of channel
+        },
+
+        channelSubscribedToCount:{  //name of field
+          $size:"$subscribedTo"    //size operator calculate the channel subscribed To(to whom channel subscribed)
+        },
+
+        isSubscribed:{
+          $cond:{     //condition operator to validation check
+            if:{      //in oprerator is used to check user present in or not
+              $in:[req.user?._id,"$subscribers.subscriber"]  //it check user present ot not inside subscribers document
+            },
+            then:true,
+            else:false
+          }
+
+        }
+      }
+    },
+
+    { //project stage aggregation to projection of requested field to next stage
+      //and project should be last stage of aggeragation pipeline
+      $project:{
+        fullName:1,
+        username:1,
+        email:1,
+        subscribersCount:1,
+        channelSubscribedToCount:1,
+        isSubscribed:1,
+        avatar:1,
+        coverImage:1,
+
+
 
       }
     }
   ])
 
+  if(!channel?.length) throw new ApiError(400,"channel does not exist");
 
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(
+      200,
+      channel[0],
+      "User Channel Fetched Successfully"
+    )
+  )
 
 })
 
