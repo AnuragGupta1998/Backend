@@ -4,8 +4,8 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
-import fs from "fs"
-import { deleteImageFromCloudinary } from "../utils/deleteFromCloudinary.js";
+
+// import { deleteImageCloudinary } from "../utils/deleteFromCloudinary.js";
 import mongoose from "mongoose";
 
 
@@ -44,7 +44,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // return res
 
   //user details
-  // console.log("req.files=", req.files);
+  console.log("req.files=", req.files);
   const { username, email, password, fullName } = req.body;
 
   // validation - not empty it check all field should not to be empty 
@@ -67,6 +67,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   //multer provide us access to files ( upload middleware we can access file)
   const avatarLocalPath = req.files?.avatar[0]?.path;
+  console.log("avatar local path",avatarLocalPath)
 
   // const coverImageLocalPath=req.files?.coverImage[0]?.path;
   let coverImageLocalPath;
@@ -82,6 +83,9 @@ const registerUser = asyncHandler(async (req, res) => {
   const avatar = await uploadOnCloudinary(avatarLocalPath);
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
+  console.log("avatar from cloudinary",avatar)
+
+
   //if avatar is not uploaded on cloudinary
   if (!avatar) throw new ApiError(400, "avatar must required"); //check avatar uploaded on cloudinary or not
 
@@ -95,6 +99,7 @@ const registerUser = asyncHandler(async (req, res) => {
     coverImage: coverImage?.url || "",
   });
 
+  console.log("avatar after DB",avatar)
   //do not send password and refreshToken to user
   const userCreated = await User.findById(user._id).select("-password -refreshToken");
 
@@ -175,13 +180,13 @@ const logoutUser = asyncHandler(async (req,res) =>{
   await User.findByIdAndUpdate(
     req.user._id,   //user coming from auth middlewale check routes
     {
-      // unset:{
-      //   accessToken:1   // this removes the field from document
-      // }
-      
-      $set:{
-        accessToken:undefined
+      $unset:{
+        accessToken:1   // this removes the field from document
       }
+      
+      // $set:{
+      //   accessToken:undefined
+      // 
     },
     {
       new:true
@@ -201,7 +206,7 @@ const logoutUser = asyncHandler(async (req,res) =>{
   
 });
 
-//regenarating AccessToken with the help of refresshToken from req.cookies ....................................................
+//regenarating AccessToken with the help of refresshToken from req.cookies ......................................
 const regenaratingAccessToken = asyncHandler(async(req,res) =>{
 
   const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken ;
@@ -283,6 +288,7 @@ const updateAccountDetails = asyncHandler(async (req,res) =>{
   // user.fullName=fullName;
   // user.email=email;
   // user.save({validateBeforeSave:false})
+
   const user = await User.findByIdAndUpdate(
     req.user?._id,      //find the user by this query
     {
@@ -313,9 +319,9 @@ const updateUserAvatar=asyncHandler(async (req,res) =>{
 
   //Todo Assignment delete old image of user image from cloudinary 
   //delete old image from cloudinary after new image uploaded on cloudinary
-  const oldUser = await User.findById(user._id)
-  const oldImagePath=oldUser.avatar;
-  deleteImageFromCloudinary(oldImagePath)
+  // const oldUser = await User.findById(user._id)
+  // const oldImagePath=oldUser.avatar;
+  // deleteImageCloudinary(oldImagePath.url)
 
 
   if(!avatar.url) throw new ApiError(400,"Error while uploading on avatar");
