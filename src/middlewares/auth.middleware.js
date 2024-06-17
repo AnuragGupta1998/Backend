@@ -7,7 +7,7 @@ import { User } from "../models/user.model.js";
 export const verfyJWT = asyncHandler(async (req,_,next) =>{
     try {
         //accessToken from cookie or header to logout User
-        console.log("req.cookies",req.cookies)
+
         const token=req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","");
 
         if(!token) throw new ApiError(401,"Unauthorized request");

@@ -43,12 +43,12 @@ const registerUser = asyncHandler(async (req, res) => {
   // check for user creation
   // return res
 
-  //user details
-  console.log("req.files=", req.files);
+  //user details taking from form
   const { username, email, password, fullName } = req.body;
 
   // validation - not empty it check all field should not to be empty 
   //if empty then return true if it true then send an error msg
+
   if ([username, email, password, fullName].some((field) => field?.trim() === "")){
     throw new ApiError(400, "All fields must be required to proceed");
   }
@@ -67,7 +67,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
   //multer provide us access to files ( upload middleware we can access file)
   const avatarLocalPath = req.files?.avatar[0]?.path;
-  console.log("avatar local path",avatarLocalPath)
 
   // const coverImageLocalPath=req.files?.coverImage[0]?.path;
   let coverImageLocalPath;
@@ -83,9 +82,6 @@ const registerUser = asyncHandler(async (req, res) => {
   const avatar = await uploadOnCloudinary(avatarLocalPath);
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
-  console.log("avatar from cloudinary",avatar)
-
-
   //if avatar is not uploaded on cloudinary
   if (!avatar) throw new ApiError(400, "avatar must required"); //check avatar uploaded on cloudinary or not
 
@@ -99,7 +95,6 @@ const registerUser = asyncHandler(async (req, res) => {
     coverImage: coverImage?.url || "",
   });
 
-  console.log("avatar after DB",avatar)
   //do not send password and refreshToken to user
   const userCreated = await User.findById(user._id).select("-password -refreshToken");
 
@@ -157,7 +152,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
+    .cookie("accessToken", accessToken, options)    //set values in cookies accessToken and refreshToken
     .cookie("refreshToken", refreshToken, options)
     .json(
       new ApiResponse(
@@ -184,12 +179,12 @@ const logoutUser = asyncHandler(async (req,res) =>{
         accessToken:1   // this removes the field from document
       }
       
-      // $set:{
+      // set:{
       //   accessToken:undefined
       // 
     },
     {
-      new:true
+      new:true      //it return with updated User
     }
   )
 
@@ -209,19 +204,22 @@ const logoutUser = asyncHandler(async (req,res) =>{
 //regenarating AccessToken with the help of refresshToken from req.cookies ......................................
 const regenaratingAccessToken = asyncHandler(async(req,res) =>{
 
-  const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken ;
+  const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken ;
 
   if(!incomingRefreshToken) throw new ApiError(401," incomingRefreshToken Invalid refresh token please re-login");
 
   //verify refreshToken by JWT
   try {
-    const decodedRefreshToken= jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET);
+    const decodedRefreshToken = jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET);
 
-    const user=await User.findById(decodedRefreshToken._id)
+    const user = await User.findById(decodedRefreshToken._id)
 
     if(!user) throw new ApiError(401," User Invalid Refresh Token");
 
-    const {accessToken,newRefreshToken} = await generateAccessAndRefreshToken(user._id);
+    const {accessToken,refreshToken:newRefreshToken} = await generateAccessAndRefreshToken(user._id);
+
+    console.log("newRefreshToken",newRefreshToken)
+    // console.log("RefreshToken",refreshToken)
 
     const options={
       httpOnly:true,
@@ -235,9 +233,9 @@ const regenaratingAccessToken = asyncHandler(async(req,res) =>{
     .json(
       new ApiResponse(
         200,
-        {
+        { 
           accessToken,
-          refreshToken:newRefreshToken 
+          refreshToken: newRefreshToken,
         },
         "Access token refreshed"       
       )
@@ -255,6 +253,9 @@ const changeCurrentPassword = asyncHandler(async (req,res) =>{
   // if(newPassword !== confirmPassword) throw new ApiError(400,"new and confim Password not same");
 
   const{oldPassword,newPassword}=req.body;
+
+  console.log("oldPassword",oldPassword)
+  console.log("newPassword",newPassword)
   
   //find user by authmiddleware
   const user = await User.findById(req.user._id);
@@ -268,12 +269,12 @@ const changeCurrentPassword = asyncHandler(async (req,res) =>{
   user.password = newPassword;
   user.save({validateBeforeSave:false});
 
-  return res.status(200).json(new ApiResponse(200,{},"Password change Successfully"))
+  return res.status(200).json(new ApiResponse(200,user,"Password change Successfully"))
 
 })
 
 //getCurrent User by using authMiddleware .......................................................................................
-const getCurrentUser=asyncHandler(async (req,res) =>{
+const getCurrentUser=asyncHandler(async (req,res) =>{ 
   return res.status(200).json(new ApiResponse(200,req.user,"User fetched Successfully"));
 })
 
@@ -290,7 +291,7 @@ const updateAccountDetails = asyncHandler(async (req,res) =>{
   // user.save({validateBeforeSave:false})
 
   const user = await User.findByIdAndUpdate(
-    req.user?._id,      //find the user by this query
+    req.user?._id,      //find the user by auth-middleware
     {
       $set:{          //it set the fullName and email
         fullName,     //fullName:fullName
@@ -300,7 +301,9 @@ const updateAccountDetails = asyncHandler(async (req,res) =>{
     {
       new:true          //it return new updated user informtion
     }
-  ).select("-password");
+  ).select("-password -refreshToken");
+
+  // console.log("updateAccountDetails",user) // work successfully
 
   return res 
   .status(200)
@@ -350,6 +353,7 @@ const updateUserCoverImage=asyncHandler(async (req,res) =>{
 
   //get coverImage file through multer middleware
   const coverImageLocalPath=req.file?.path;
+  console.log(req.file)
   if(!coverImageLocalPath) throw new ApiError(400,"coverImage file is missing");
 
   const coverImage=await uploadOnCloudinary(coverImageLocalPath)
@@ -475,7 +479,7 @@ const getWatchhistory = asyncHandler(async (req,res) => {
 
     {
       $match:{
-        _id:new mongoose.Types.ObjectId(re)
+        _id:new mongoose.Types.ObjectId(req.user._id)
       }
     },
 
