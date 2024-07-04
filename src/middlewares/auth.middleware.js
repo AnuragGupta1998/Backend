@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 
 
-export const verfyJWT = asyncHandler(async (req,_,next) =>{
+export const verifyJWT = asyncHandler(async (req,_,next) =>{
     try {
         //accessToken from cookie or header to logout User
 
